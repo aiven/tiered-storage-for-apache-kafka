@@ -14,3 +14,54 @@
  * limitations under the License.
  */
 
+subprojects { subproject ->
+    tasks.register("validateDeps") {
+        doLast {
+            // Storage module deps versions
+            def depVersions = [:]
+            def runtimeClasspath = subproject.sourceSets.main.runtimeClasspath
+
+            runtimeClasspath.each { file ->
+                def fileName = file.name
+                def matcher = fileName =~ /(.+)-(\d+\.\d+\.\d+(-.+)?)(\..+)/
+
+                if (matcher) {
+                    def artifactId = matcher[0][1]
+                    def version = matcher[0][2]
+                    depVersions[artifactId] = version
+                }
+            }
+
+            // Validate transient dependencies between storage modules and core deps
+            def coreDeps = [project(":core"), project(":commons")]
+            def conflictsFound = false
+
+            coreDeps.forEach { dep ->
+                runtimeClasspath = dep.sourceSets.main.runtimeClasspath
+                runtimeClasspath.each { file ->
+                    def matcher = file.name =~ /(.+)-(\d+\.\d+\.\d+(-.+)?)(\..+)/
+
+                    if (matcher) {
+                        def artifactId = matcher[0][1]
+                        def version = matcher[0][2]
+
+                        if (depVersions.containsKey(artifactId)) {
+                            if (depVersions[artifactId] != version) {
+                                println "Conflict found for $artifactId: ${depVersions[artifactId]} vs $version"
+                                conflictsFound = true
+                            }
+                        } else {
+                            depVersions[artifactId] = version
+                        }
+                    }
+                }
+            }
+
+            assert !conflictsFound: "Dependency conflicts found!"
+        }
+    }
+
+    tasks.named("check") {
+        dependsOn(tasks.named("validateDeps"))
+    }
+}
