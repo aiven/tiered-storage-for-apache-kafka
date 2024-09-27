@@ -21,6 +21,7 @@
     <suppress checks="AbbreviationAsWordInName" files="DataKeyAndAADEqualsTest"/>
     <suppress checks="ClassDataAbstractionCoupling" files=".*Test\.java"/>
     <suppress checks="ClassFanOutComplexity" files=".*Test\.java"/>
+    <suppress checks="ClassFanOutComplexity" files=".*Bench\.java"/>
     <suppress checks="ClassFanOutComplexity" files="RemoteStorageManager.java"/>
     <suppress checks="ClassFanOutComplexity" files="ChunkCache.java"/>
     <suppress checks="ClassFanOutComplexity" files="MemorySegmentIndexesCache"/>
@@ -32,6 +33,7 @@
     <suppress checks="ClassDataAbstractionCoupling" files="Metrics.java"/>
     <suppress checks="ClassDataAbstractionCoupling" files="MetricCollector.java"/>
     <suppress checks="ClassDataAbstractionCoupling" files="AzureBlobStorage.java"/>
+    <suppress checks="ClassDataAbstractionCoupling" files=".*Bench\.java"/>
     <suppress checks="CyclomaticComplexity" files="MetricCollector.java"/>
     <suppress checks="CyclomaticComplexity" files="SegmentIndexesV1Builder.java"/>
     <suppress checks="CyclomaticComplexity" files="SingleBrokerTest.java"/>

@@ -63,3 +63,8 @@ docker_image: build
 .PHONY: docker_push
 docker_push:
 	docker push $(IMAGE_TAG)
+
+# Prepare kernel to capture CPU events
+async_profiler_cpu_kernel-prep:
+	sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
+	sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'

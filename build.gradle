@@ -24,6 +24,7 @@ plugins {
     id 'info.solidsoft.pitest' version '1.15.0' apply false
     id "java-library"
     id "distribution"
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 }
 
 apply plugin: 'info.solidsoft.pitest.aggregator'
