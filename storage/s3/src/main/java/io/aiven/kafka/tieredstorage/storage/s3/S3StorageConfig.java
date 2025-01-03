@@ -58,6 +58,11 @@ public class S3StorageConfig extends AbstractConfig {
     private static final String S3_MULTIPART_UPLOAD_PART_SIZE_DOC = "Size of parts in bytes to use when uploading. "
         + "All parts but the last one will have this size. "
         + "Valid values: between 5MiB and 2GiB";
+
+    public static final String S3_MULTIPART_UPLOAD_DIRECT_BUFFERS_CONFIG = "s3.multipart.upload.direct.buffers";
+    public static final String S3_MULTIPART_UPLOAD_DIRECT_BUFFERS_DOC =
+        "Allocate multipart upload buffers as direct buffers (off-heap)";
+
     static final int S3_MULTIPART_UPLOAD_PART_SIZE_MIN = 5 * 1024 * 1024; // 5MiB
     static final int S3_MULTIPART_UPLOAD_PART_SIZE_MAX = Integer.MAX_VALUE;
     static final int S3_MULTIPART_UPLOAD_PART_SIZE_DEFAULT = S3_MULTIPART_UPLOAD_PART_SIZE_MIN;
@@ -120,6 +125,12 @@ public class S3StorageConfig extends AbstractConfig {
                 null,
                 ConfigDef.Importance.LOW,
                 S3_PATH_STYLE_ENABLED_DOC)
+            .define(
+                S3_MULTIPART_UPLOAD_DIRECT_BUFFERS_CONFIG,
+                ConfigDef.Type.BOOLEAN,
+                false,
+                ConfigDef.Importance.LOW,
+                S3_MULTIPART_UPLOAD_DIRECT_BUFFERS_DOC)
             .define(
                 S3_MULTIPART_UPLOAD_PART_SIZE_CONFIG,
                 ConfigDef.Type.INT,
@@ -259,6 +270,10 @@ public class S3StorageConfig extends AbstractConfig {
 
     public Boolean pathStyleAccessEnabled() {
         return getBoolean(S3_PATH_STYLE_ENABLED_CONFIG);
+    }
+
+    public Boolean multipartDirectBuffers() {
+        return getBoolean(S3_MULTIPART_UPLOAD_DIRECT_BUFFERS_CONFIG);
     }
 
     public int uploadPartSize() {

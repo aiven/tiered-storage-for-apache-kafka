@@ -67,12 +67,17 @@ public class S3MultiPartOutputStream extends OutputStream {
     public S3MultiPartOutputStream(final String bucketName,
                                    final ObjectKey key,
                                    final int partSize,
-                                   final S3Client client) {
+                                   final S3Client client,
+                                   final boolean directAllocation) {
         this.bucketName = bucketName;
         this.key = key;
         this.client = client;
         this.partSize = partSize;
-        this.partBuffer = ByteBuffer.allocate(partSize);
+        if (directAllocation) {
+            this.partBuffer = ByteBuffer.allocateDirect(partSize);
+        } else {
+            this.partBuffer = ByteBuffer.allocate(partSize);
+        }
         final CreateMultipartUploadRequest initialRequest = CreateMultipartUploadRequest.builder().bucket(bucketName)
             .key(key.value()).build();
         final CreateMultipartUploadResponse initiateResult = client.createMultipartUpload(initialRequest);
