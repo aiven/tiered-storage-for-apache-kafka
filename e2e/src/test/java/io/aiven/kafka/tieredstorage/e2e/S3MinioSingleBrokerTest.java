@@ -28,7 +28,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -38,45 +38,28 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-public class S3MinioSingleBrokerTest extends SingleBrokerTest {
-
+abstract class S3MinioSingleBrokerTest extends SingleBrokerTest {
     static final int MINIO_PORT = 9000;
+    static final String MINIO_NETWORK_ALIAS = "minio";
+
     static final GenericContainer<?> MINIO = new GenericContainer<>(DockerImageName.parse("minio/minio"))
         .withCommand("server", "/data", "--console-address", ":9090")
         .withExposedPorts(MINIO_PORT)
         .withNetwork(NETWORK)
-        .withNetworkAliases("minio");
+        .withNetworkAliases(MINIO_NETWORK_ALIAS);
+
     static final String ACCESS_KEY_ID = "minioadmin";
     static final String SECRET_ACCESS_KEY = "minioadmin";
     static final String REGION = "us-east-1";
-    static final String BUCKET = "test-bucket";
+
+    static final String MINIO_SERVER_URL = String.format("http://%s:%s", MINIO_NETWORK_ALIAS, MINIO_PORT);
 
     static S3Client s3Client;
 
     @BeforeAll
-    static void init() throws Exception {
+    static void init() {
         MINIO.start();
 
-        final String minioServerUrl = String.format("http://minio:%s", MINIO_PORT);
-
-        createBucket(minioServerUrl);
-
-        initializeS3Client();
-
-        setupKafka(kafka -> kafka.withEnv("KAFKA_RSM_CONFIG_STORAGE_BACKEND_CLASS",
-                "io.aiven.kafka.tieredstorage.storage.s3.S3Storage")
-            .withEnv("KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_PATH",
-                "/tiered-storage-for-apache-kafka/core/*:/tiered-storage-for-apache-kafka/s3/*")
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_BUCKET_NAME", BUCKET)
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_REGION", REGION)
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_PATH_STYLE_ACCESS_ENABLED", "true")
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_AWS_ACCESS_KEY_ID", ACCESS_KEY_ID)
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_AWS_SECRET_ACCESS_KEY", SECRET_ACCESS_KEY)
-            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_ENDPOINT_URL", minioServerUrl)
-            .dependsOn(MINIO));
-    }
-
-    private static void initializeS3Client() {
         final Integer mappedPort = MINIO.getFirstMappedPort();
         Testcontainers.exposeHostPorts(mappedPort);
         s3Client = S3Client.builder()
@@ -93,21 +76,6 @@ public class S3MinioSingleBrokerTest extends SingleBrokerTest {
             .forEach(bucket -> LOG.info("S3 bucket: {}", bucket.name()));
     }
 
-    private static void createBucket(final String minioServerUrl) {
-        final String cmd =
-            "/usr/bin/mc config host add local "
-                + minioServerUrl + " " + ACCESS_KEY_ID + " " + SECRET_ACCESS_KEY + " --api s3v4 &&"
-                + "/usr/bin/mc mb local/test-bucket;\n";
-
-        final GenericContainer<?> mcContainer = new GenericContainer<>("minio/mc")
-            .withNetwork(NETWORK)
-            .withStartupCheckStrategy(new OneShotStartupCheckStrategy())
-            .withCreateContainerCmdModifier(containerCommand -> containerCommand
-                .withTty(true)
-                .withEntrypoint("/bin/sh", "-c", cmd));
-        mcContainer.start();
-    }
-
     @AfterAll
     static void cleanup() {
         stopKafka();
@@ -117,16 +85,33 @@ public class S3MinioSingleBrokerTest extends SingleBrokerTest {
         cleanupStorage();
     }
 
+    static KafkaContainer rsmPluginBasicSetup(final KafkaContainer container) {
+        container
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_BACKEND_CLASS",
+                "io.aiven.kafka.tieredstorage.storage.s3.S3Storage")
+            .withEnv("KAFKA_REMOTE_LOG_STORAGE_MANAGER_CLASS_PATH",
+                "/tiered-storage-for-apache-kafka/core/*:/tiered-storage-for-apache-kafka/s3/*")
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_REGION", REGION)
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_PATH_STYLE_ACCESS_ENABLED", "true")
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_AWS_ACCESS_KEY_ID", ACCESS_KEY_ID)
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_AWS_SECRET_ACCESS_KEY", SECRET_ACCESS_KEY)
+            .withEnv("KAFKA_RSM_CONFIG_STORAGE_S3_ENDPOINT_URL", MINIO_SERVER_URL)
+            .dependsOn(MINIO);
+        return container;
+    }
+
+    protected abstract String bucket();
+
     @Override
     boolean assertNoTopicDataOnTierStorage(final String topicName, final Uuid topicId) {
         final String prefix = String.format("%s-%s", topicName, topicId.toString());
-        final var request = ListObjectsV2Request.builder().bucket(BUCKET).prefix(prefix).build();
+        final var request = ListObjectsV2Request.builder().bucket(bucket()).prefix(prefix).build();
         return s3Client.listObjectsV2(request).keyCount() == 0;
     }
 
     @Override
     List<String> remotePartitionFiles(final TopicIdPartition topicIdPartition) {
-        ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(BUCKET).build();
+        ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(bucket()).build();
         final List<S3Object> s3Objects = new ArrayList<>();
         ListObjectsV2Response result;
         while ((result = s3Client.listObjectsV2(request)).isTruncated()) {

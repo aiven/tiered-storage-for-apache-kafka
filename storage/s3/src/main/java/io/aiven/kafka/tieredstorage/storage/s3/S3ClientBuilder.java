@@ -18,12 +18,11 @@ package io.aiven.kafka.tieredstorage.storage.s3;
 
 import java.util.Objects;
 
+import io.aiven.kafka.tieredstorage.storage.proxy.ProxyConfig;
+
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuilder;
-import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.utils.AttributeMap;
 
 class S3ClientBuilder {
     static S3Client build(final S3StorageConfig config) {
@@ -39,15 +38,19 @@ class S3ClientBuilder {
             s3ClientBuilder.forcePathStyle(config.pathStyleAccessEnabled());
         }
 
-        if (!config.certificateCheckEnabled()) {
-            s3ClientBuilder.httpClient(
-                new DefaultSdkHttpClientBuilder()
-                    .buildWithDefaults(
-                        AttributeMap.builder()
-                            .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, true)
-                            .build()
-                    )
-            );
+        final ProxyConfig proxyConfig = config.proxyConfig();
+        if (!config.certificateCheckEnabled() || proxyConfig != null) {
+            final var sdkHttpClientBuilder = new SdkHttpClientBuilder();
+
+            if (!config.certificateCheckEnabled()) {
+                sdkHttpClientBuilder.trustAllCertificates();
+            }
+
+            if (proxyConfig != null) {
+                sdkHttpClientBuilder.withProxy(proxyConfig);
+            }
+
+            s3ClientBuilder.httpClientBuilder(sdkHttpClientBuilder);
         }
 
         s3ClientBuilder.serviceConfiguration(builder ->

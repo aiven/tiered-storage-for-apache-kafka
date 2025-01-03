@@ -78,7 +78,7 @@ public abstract class BaseSocks5Test<T extends StorageBackend> {
     protected abstract Map<String, Object> storageConfigForUnauthenticatedProxy();
 
     @Test
-    void doesNotWorkWithoutProxy() {
+    protected void doesNotWorkWithoutProxy() {
         // This test accompanies the other ones by ensuring that _without_ a proxy
         // we cannot even resolve the host name of the server, which is internal to the Docker network.
 

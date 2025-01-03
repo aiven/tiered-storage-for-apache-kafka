@@ -27,6 +27,7 @@ dependencies {
         dep.exclude group: "org.slf4j"
     }
     implementation ("software.amazon.awssdk:s3:$awsSdkVersion") {excludeFromAWSDeps(it)}
+    compileOnly ("software.amazon.awssdk:apache-client:$awsSdkVersion") {excludeFromAWSDeps(it)}
     runtimeOnly ("software.amazon.awssdk:sts:$awsSdkVersion") {excludeFromAWSDeps(it)}
 
     implementation project(':commons')
