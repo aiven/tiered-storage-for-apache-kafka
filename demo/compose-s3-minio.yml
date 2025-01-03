@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##
-version: '3.8'
 services:
   zookeeper:
     image: "confluentinc/cp-zookeeper:7.3.3"
@@ -30,7 +29,7 @@ services:
       - minio
     ports:
       - "9092:9092"
-      - "7000:7000" #prometheus metrics
+      - "7001:7001" #prometheus metrics
     environment:
       KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"

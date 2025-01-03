@@ -15,9 +15,9 @@
 ##
 
 # Base image based 3.8.0 + minor changes unrelated to TS included on this branch:
-# https://github.com/apache/kafka/compare/3.8...aiven:kafka:3.8.0-2024-07-30
+# https://github.com/apache/kafka/compare/3.8...aiven:kafka:3.8.1-2024-11-21
 # See commits and Dockerfile for more details on base image
-FROM docker.io/aivenoy/kafka:3.8.0-2024-07-30
+FROM docker.io/aivenoy/kafka:3.8.1-2024-11-21
 
 ARG _VERSION
 
@@ -49,12 +49,12 @@ RUN cd /tiered-storage-for-apache-kafka/azure \
     && rm azure-${_VERSION}.tgz
 
 # Installing JMX exporter agent
-ARG JMX_EXPORTER_VERSION=0.18.0
+ARG JMX_EXPORTER_VERSION=1.0.1
 RUN mkdir -p /opt/prometheus/jmx-exporter
-RUN wget https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar \
+RUN wget https://repo.maven.apache.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar \
     -O /opt/prometheus/jmx-exporter/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar
 COPY docker/kafka-jmx-exporter.yml /opt/prometheus/jmx-exporter/.
-ENV KAFKA_OPTS="-javaagent:/opt/prometheus/jmx-exporter/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar=7000:/opt/prometheus/jmx-exporter/kafka-jmx-exporter.yml"
+ENV KAFKA_OPTS="-javaagent:/opt/prometheus/jmx-exporter/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar=7001:/opt/prometheus/jmx-exporter/kafka-jmx-exporter.yml"
 
 # Restore the user.
 USER appuser

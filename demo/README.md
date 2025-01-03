@@ -217,8 +217,8 @@ and set paths on `compose.yml` file:
 
 ### Metrics
 
-Metrics are available as JMX MBeans, and exposed using [JMX Exporter](https://github.com/prometheus/jmx_exporter) at port `7000`
+Metrics are available as JMX MBeans, and exposed using [JMX Exporter](https://github.com/prometheus/jmx_exporter) at port `7001`
 
 ```shell
-curl http://localhost:7000 | grep kafka_tiered
+curl http://localhost:7001/metrics | grep kafka_tiered
 ```
