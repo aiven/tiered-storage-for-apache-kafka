@@ -99,11 +99,16 @@ public class DiskChunkCache extends ChunkCache<Path> {
         return (key, path, cause) -> {
             try {
                 if (path != null) {
-                    final long fileSize = Files.size(path);
-                    Files.delete(path);
-                    metrics.chunkDeleted(fileSize);
-                    log.trace("Deleted cached file for key {} with path {} from cache directory."
-                        + " The reason of the deletion is {}", key, path, cause);
+                    if (Files.exists(path)) {
+                        final long fileSize = Files.size(path);
+                        Files.delete(path);
+                        metrics.chunkDeleted(fileSize);
+                        log.trace("Deleted cached file for key {} with path {} from cache directory."
+                            + " The reason of the deletion is {}", key, path, cause);
+                    } else {
+                        log.debug("Deletion of cached file for key {} with "
+                            + "path {} is requested by file is not found", key, path);
+                    }
                 } else {
                     log.warn("Path not present when trying to delete cached file for key {} from cache directory."
                         + " The reason of the deletion is {}", key, cause);

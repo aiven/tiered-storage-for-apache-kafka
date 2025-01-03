@@ -215,7 +215,7 @@ class MemorySegmentIndexesCacheTest {
         void sizeBasedEviction() throws IOException, StorageBackendException {
             cache.configure(Map.of(
                 "size", "18",
-                "retention.ms", "-1"
+                "retention.ms", String.valueOf(Duration.ofSeconds(10).toMillis())
             ));
             assertThat(cache.cache.asMap()).isEmpty();
 
@@ -253,13 +253,14 @@ class MemorySegmentIndexesCacheTest {
             assertThat(timeIndex).hasBinaryContent(TIME_INDEX);
             assertThat(cache.cache.asMap()).isNotEmpty();
 
+            // because of the retention ms, it may be deleting cached values 1, 2 or both.
             await()
-                .atMost(Duration.ofSeconds(30)) // increase to reduce chance of flakiness
+                .atMost(Duration.ofSeconds(30))
                 .pollDelay(Duration.ofSeconds(2))
                 .pollInterval(Duration.ofMillis(10))
                 .until(() -> !mockingDetails(removalListener).getInvocations().isEmpty());
 
-            assertThat(cache.cache.asMap()).hasSize(1);
+            assertThat(cache.cache.asMap().size()).isLessThanOrEqualTo(1);
             verify(removalListener).onRemoval(any(SegmentIndexKey.class), any(), eq(RemovalCause.SIZE));
         }
     }

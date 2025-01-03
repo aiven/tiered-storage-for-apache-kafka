@@ -89,7 +89,8 @@ class DiskChunkCacheMetricsTest {
         final DiskChunkCache diskChunkCache = new DiskChunkCache(chunkManager, time);
         diskChunkCache.configure(Map.of(
             "size", size1,  // enough to put the first, but not both
-            "path", baseCachePath.toString()
+            "path", baseCachePath.toString(),
+            "retention.ms", String.valueOf(Duration.ofSeconds(10).toMillis())
         ));
 
         diskChunkCache.getChunk(OBJECT_KEY_PATH, SEGMENT_MANIFEST, 0);
@@ -118,28 +119,40 @@ class DiskChunkCacheMetricsTest {
         assertThat(MBEAN_SERVER.getAttribute(objectName, "write-bytes-rate"))
             .isEqualTo(((double) (size1 + size2)) / METRIC_TIME_WINDOW_SEC);
 
+        // because of the retention ms, it may be deleting cached values 1, 2 or both.
         await("Deletion happens")
-            .atMost(Duration.ofSeconds(30)) // increase to reduce chance of flakiness
+            .atMost(Duration.ofSeconds(30))
             .pollDelay(Duration.ofMillis(100))
             .pollInterval(Duration.ofMillis(100))
             .until(() -> (double) MBEAN_SERVER.getAttribute(objectName, "delete-total") > 0);
 
         assertThat(MBEAN_SERVER.getAttribute(objectName, "delete-total"))
-            .isEqualTo(1.0);
+            .asInstanceOf(DOUBLE)
+            .satisfiesAnyOf(
+                deleteTotal -> assertThat(deleteTotal).isEqualTo(1),
+                deleteTotal -> assertThat(deleteTotal).isEqualTo(2)
+            );
         assertThat(MBEAN_SERVER.getAttribute(objectName, "delete-rate"))
-            .isEqualTo(1.0 / METRIC_TIME_WINDOW_SEC);
+            .satisfiesAnyOf(
+                deleteTotalRate -> assertThat(deleteTotalRate).isEqualTo(1.0 / METRIC_TIME_WINDOW_SEC),
+                deleteTotalRate -> assertThat(deleteTotalRate).isEqualTo(2.0 / METRIC_TIME_WINDOW_SEC)
+            );
 
         assertThat(MBEAN_SERVER.getAttribute(objectName, "delete-bytes-total"))
+            .asInstanceOf(DOUBLE)
             .satisfiesAnyOf(
-                deleteBytesTotal -> assertThat(deleteBytesTotal).asInstanceOf(DOUBLE).isEqualTo(size1),
-                deleteBytesTotal -> assertThat(deleteBytesTotal).asInstanceOf(DOUBLE).isEqualTo(size2)
+                deleteBytesTotal -> assertThat(deleteBytesTotal).isEqualTo(size1),
+                deleteBytesTotal -> assertThat(deleteBytesTotal).isEqualTo(size2),
+                deleteBytesTotal -> assertThat(deleteBytesTotal).isEqualTo(size1 + size2)
             );
         assertThat(MBEAN_SERVER.getAttribute(objectName, "delete-bytes-rate"))
             .satisfiesAnyOf(
                 deleteBytesRate -> assertThat(deleteBytesRate)
                     .isEqualTo((double) size1 / METRIC_TIME_WINDOW_SEC),
                 deleteBytesRate -> assertThat(deleteBytesRate)
-                    .isEqualTo((double) size2 / METRIC_TIME_WINDOW_SEC)
+                    .isEqualTo((double) size2 / METRIC_TIME_WINDOW_SEC),
+                deleteBytesRate -> assertThat(deleteBytesRate)
+                    .isEqualTo((double) (size1 + size2) / METRIC_TIME_WINDOW_SEC)
             );
     }
 }
