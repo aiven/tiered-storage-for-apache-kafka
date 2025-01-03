@@ -31,16 +31,16 @@ checkstyle:
 build: build/distributions/tiered-storage-for-apache-kafka-$(VERSION).tgz storage/s3/build/distributions/s3-$(VERSION).tgz storage/gcs/build/distributions/gcs-$(VERSION).tgz storage/azure/build/distributions/azure-$(VERSION).tgz
 
 build/distributions/tiered-storage-for-apache-kafka-$(VERSION).tgz:
-	./gradlew build distTar -x test -x integrationTest -x e2e:test
+	./gradlew build distTar -x test -x integrationTest
 
 storage/s3/build/distributions/s3-$(VERSION).tgz:
-	./gradlew build :storage:s3:distTar -x test -x integrationTest -x e2e:test
+	./gradlew build :storage:s3:distTar -x test -x integrationTest
 
 storage/gcs/build/distributions/gcs-$(VERSION).tgz:
-	./gradlew build :storage:gcs:distTar -x test -x integrationTest -x e2e:test
+	./gradlew build :storage:gcs:distTar -x test -x integrationTest
 
 storage/azure/build/distributions/azure-$(VERSION).tgz:
-	./gradlew build :storage:azure:distTar -x test -x integrationTest -x e2e:test
+	./gradlew build :storage:azure:distTar -x test -x integrationTest
 
 .PHONY: docs
 docs:
@@ -48,15 +48,15 @@ docs:
 	./gradlew :docs:genMetricsDocs
 
 test: build
-	./gradlew test -x e2e:test
+	./gradlew test
 
 integration_test: build
-	./gradlew integrationTest
+	./gradlew integrationTest -x :e2e:integrationTest
 
 E2E_TEST=LocalSystem
 
 e2e_test: build
-	./gradlew e2e:test --tests $(E2E_TEST)*
+	./gradlew :e2e:integrationTest --tests $(E2E_TEST)*
 
 .PHONY: docker_image
 docker_image: build

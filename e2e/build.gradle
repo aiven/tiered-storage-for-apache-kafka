@@ -15,26 +15,26 @@
  */
 
 dependencies {
-    testImplementation "org.apache.kafka:kafka-clients:$kafkaVersion"
-    testImplementation "org.apache.kafka:kafka-server-common:$kafkaVersion"
-    testImplementation "org.apache.kafka:kafka-storage:$kafkaVersion"
-    testImplementation "org.apache.kafka:kafka-storage-api:$kafkaVersion"
+    integrationTestImplementation "org.apache.kafka:kafka-clients:$kafkaVersion"
+    integrationTestImplementation "org.apache.kafka:kafka-server-common:$kafkaVersion"
+    integrationTestImplementation "org.apache.kafka:kafka-storage:$kafkaVersion"
+    integrationTestImplementation "org.apache.kafka:kafka-storage-api:$kafkaVersion"
 
-    testImplementation "commons-io:commons-io:$apacheCommonsIOVersion"
-    testImplementation("software.amazon.awssdk:s3:$awsSdkVersion") {
+    integrationTestImplementation "commons-io:commons-io:$apacheCommonsIOVersion"
+    integrationTestImplementation("software.amazon.awssdk:s3:$awsSdkVersion") {
         exclude group: "org.slf4j"
     }
-    implementation "com.google.cloud:google-cloud-storage:$gcpSdkVersion"
+    integrationTestImplementation "com.google.cloud:google-cloud-storage:$gcpSdkVersion"
 
-    testImplementation "org.testcontainers:junit-jupiter:$testcontainersVersion"
-    testImplementation "org.testcontainers:kafka:$testcontainersVersion"
+    integrationTestImplementation "org.testcontainers:junit-jupiter:$testcontainersVersion"
+    integrationTestImplementation "org.testcontainers:kafka:$testcontainersVersion"
 
-    testImplementation "io.aiven:testcontainers-fake-gcs-server:$testcontainersFakeGcsServerVersion"
+    integrationTestImplementation "io.aiven:testcontainers-fake-gcs-server:$testcontainersFakeGcsServerVersion"
 
-    testImplementation platform("com.azure:azure-sdk-bom:$azureSdkVersion")
-    testImplementation "com.azure:azure-storage-blob"
+    integrationTestImplementation platform("com.azure:azure-sdk-bom:$azureSdkVersion")
+    integrationTestImplementation "com.azure:azure-storage-blob"
 
-    testRuntimeOnly "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    integrationTestRuntimeOnly "org.slf4j:slf4j-log4j12:$slf4jVersion"
 }
 
 tasks.named('test') {
