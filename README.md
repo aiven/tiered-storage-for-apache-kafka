@@ -234,9 +234,14 @@ This means that there is not control on how fast a single segment would be uploa
 
 The plugin rate-limit is complementary to Tiered Storage Quotas.
 
-#### S3 Multipart Upload
+#### S3 Multi-part Uploads
 
-When uploading processed segments and indexes, multipart upload is used to put files on S3 back-end.
+When uploading processed segments and indexes, multipart upload is used to put files on the storage back-end (e.g. AWS S3).
+
+> [!IMPORTANT]
+> To control the amount of upload part requests that are executed per segment, each storage back-end has a size configuration.
+> Consider increasing this value (e.g. 10x) to reduce the number of requests, and therefore its costs 
+> (default: minimum part size, e.g. `rsm.config.storage.s3.multipart.upload.part.size` for S3 is 5 MiB)
 
 Even though, multipart transactions are aborted when an exception happens while processing, 
 there's a chance that initiated transactions are not completed or aborted (e.g. broker process is killed) and incomplete part uploads hang without completing a transaction.
