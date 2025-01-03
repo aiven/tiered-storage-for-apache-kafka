@@ -16,13 +16,31 @@
 
 package io.aiven.kafka.tieredstorage.storage;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public interface ObjectUploader {
     /**
      * @param inputStream content to upload. Not closed as part of the upload.
-     * @param key         path to an object within a storage backend.
+     * @param key         destination path to an object within a storage backend.
      * @return number of bytes uploaded
      */
     long upload(InputStream inputStream, ObjectKey key) throws StorageBackendException;
+
+    /**
+     * Enable backend to use optimized uploading implementations based on source files
+     *
+     * @param path source path to the object to upload
+     * @param size size of the object to upload
+     * @param key  destination path to an object within a storage backend
+     */
+    default long upload(Path path, int size, ObjectKey key) throws StorageBackendException {
+        try (final var inputStream = Files.newInputStream(path)) {
+            return upload(inputStream, key);
+        } catch (IOException e) {
+            throw new StorageBackendException("Error uploading file from path: " + path, e);
+        }
+    }
 }

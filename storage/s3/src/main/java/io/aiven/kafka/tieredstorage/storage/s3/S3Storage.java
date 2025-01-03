@@ -18,6 +18,7 @@ package io.aiven.kafka.tieredstorage.storage.s3;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 public class S3Storage implements StorageBackend {
 
@@ -62,6 +64,13 @@ public class S3Storage implements StorageBackend {
         }
         // getting the processed bytes after close to account last flush.
         return out.processedBytes();
+    }
+
+    @Override
+    public long upload(final Path path, final int size, final ObjectKey key) throws StorageBackendException {
+        final var request = PutObjectRequest.builder().bucket(bucketName).key(key.value()).build();
+        s3Client.putObject(request, path);
+        return size;
     }
 
     S3MultiPartOutputStream s3OutputStream(final ObjectKey key) {
