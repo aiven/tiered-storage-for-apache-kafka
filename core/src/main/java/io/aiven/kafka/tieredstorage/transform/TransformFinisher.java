@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Enumeration;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,6 +30,7 @@ import io.aiven.kafka.tieredstorage.manifest.index.ChunkIndex;
 import io.aiven.kafka.tieredstorage.manifest.index.FixedSizeChunkIndexBuilder;
 import io.aiven.kafka.tieredstorage.manifest.index.VariableSizeChunkIndexBuilder;
 
+import io.aiven.kafka.tieredstorage.util.RemoteEnumeration;
 import io.github.bucket4j.Bucket;
 
 /**
@@ -44,13 +44,12 @@ import io.github.bucket4j.Bucket;
  * but could also have a single chunk if the chunk size is equal or higher to the original file size.
  * Otherwise, the chunk index will contain more than one chunk.
  */
-public class TransformFinisher implements Enumeration<InputStream> {
+public class TransformFinisher extends RemoteEnumeration {
     private final TransformChunkEnumeration inner;
     private final AbstractChunkIndexBuilder chunkIndexBuilder;
     private final Path originalFilePath;
     private final int originalFileSize;
     private ChunkIndex chunkIndex = null;
-    private final Bucket rateLimitingBucket;
 
     public static Builder newBuilder(final TransformChunkEnumeration inner, final int originalFileSize) {
         return new Builder(inner, originalFileSize);
@@ -63,13 +62,13 @@ public class TransformFinisher implements Enumeration<InputStream> {
         final int originalFileSize,
         final Bucket rateLimitingBucket
     ) {
+        super(rateLimitingBucket);
         this.inner = Objects.requireNonNull(inner, "inner cannot be null");
 
         final int originalChunkSize = chunkingEnabled ? inner.originalChunkSize() : originalFileSize;
         this.chunkIndexBuilder = chunkIndexBuilder(inner, originalChunkSize, originalFileSize);
         this.originalFilePath = originalFilePath;
         this.originalFileSize = originalFileSize;
-        this.rateLimitingBucket = rateLimitingBucket;
     }
 
     private static AbstractChunkIndexBuilder chunkIndexBuilder(
@@ -141,13 +140,6 @@ public class TransformFinisher implements Enumeration<InputStream> {
         } else {
             return maybeToRateLimitedInputStream(new SequenceInputStream(this));
         }
-    }
-
-    private InputStream maybeToRateLimitedInputStream(final InputStream delegated) {
-        if (rateLimitingBucket == null) {
-            return delegated;
-        }
-        return new RateLimitedInputStream(delegated, rateLimitingBucket);
     }
 
     private boolean isBaseTransform() {

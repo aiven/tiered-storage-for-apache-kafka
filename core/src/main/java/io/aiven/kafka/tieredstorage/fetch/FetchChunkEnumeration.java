@@ -19,7 +19,6 @@ package io.aiven.kafka.tieredstorage.fetch;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -32,9 +31,11 @@ import io.aiven.kafka.tieredstorage.storage.KeyNotFoundException;
 import io.aiven.kafka.tieredstorage.storage.ObjectKey;
 import io.aiven.kafka.tieredstorage.storage.StorageBackendException;
 
+import io.aiven.kafka.tieredstorage.util.RemoteEnumeration;
+import io.github.bucket4j.Bucket;
 import org.apache.commons.io.input.BoundedInputStream;
 
-public class FetchChunkEnumeration implements Enumeration<InputStream> {
+public class FetchChunkEnumeration extends RemoteEnumeration {
     private final ChunkManager chunkManager;
     private final ObjectKey objectKey;
     private final SegmentManifest manifest;
@@ -55,11 +56,26 @@ public class FetchChunkEnumeration implements Enumeration<InputStream> {
                                  final ObjectKey objectKey,
                                  final SegmentManifest manifest,
                                  final BytesRange range) {
+        this(chunkManager,objectKey,manifest,range,null);
+    }
+
+    /**
+     * @param chunkManager provides chunk input to fetch from
+     * @param objectKey    required by chunkManager
+     * @param manifest     provides to index to build response from
+     * @param range        original offset range start/end position
+     * @param rateLimitingBucket        rate limiting bucket
+     */
+    public FetchChunkEnumeration(final ChunkManager chunkManager,
+                                 final ObjectKey objectKey,
+                                 final SegmentManifest manifest,
+                                 final BytesRange range,
+                                final Bucket rateLimitingBucket) {
+        super(rateLimitingBucket);
         this.chunkManager = Objects.requireNonNull(chunkManager, "chunkManager cannot be null");
         this.objectKey = Objects.requireNonNull(objectKey, "objectKey cannot be null");
         this.manifest = Objects.requireNonNull(manifest, "manifest cannot be null");
         this.range = Objects.requireNonNull(range, "range cannot be null");
-
         this.chunkIndex = manifest.chunkIndex();
 
         if (range.isEmpty()) {
@@ -148,7 +164,7 @@ public class FetchChunkEnumeration implements Enumeration<InputStream> {
     }
 
     public InputStream toInputStream() {
-        return new LazySequenceInputStream(this);
+        return maybeToRateLimitedInputStream(new LazySequenceInputStream(this));
     }
 
     public void close() {

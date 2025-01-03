@@ -82,6 +82,11 @@ public class RemoteStorageManagerConfig extends AbstractConfig {
         + "(therefore read from disk) per second. Rate limit must be equal or larger than 1 MiB/sec "
         + "as minimal upload throughput.";
 
+    private static final String GLOBAL_RATE_LIMIT_BYTES_CONFIG = "global.rate.limit.bytes.per.second";
+    private static final String GLOBAL_RATE_LIMIT_BYTES_DOC = "Total byte limit for upload and download "
+        + "(Therefore, read from disk/remote) per second. The rate limit must be equal to or greater than 1 MiB/second "
+        + "as the minimum upload or download throughput.";
+
     public static final String METRICS_NUM_SAMPLES_CONFIG = CommonClientConfigs.METRICS_NUM_SAMPLES_CONFIG;
     private static final String METRICS_NUM_SAMPLES_DOC = CommonClientConfigs.METRICS_NUM_SAMPLES_DOC;
 
@@ -197,6 +202,12 @@ public class RemoteStorageManagerConfig extends AbstractConfig {
 
     public OptionalInt uploadRateLimit() {
         return Optional.ofNullable(getInt(UPLOAD_RATE_LIMIT_BYTES_CONFIG)).stream()
+            .mapToInt(Integer::intValue)
+            .findAny();
+    }
+
+    public OptionalInt globalRateLimit() {
+        return Optional.ofNullable(getInt(GLOBAL_RATE_LIMIT_BYTES_CONFIG)).stream()
             .mapToInt(Integer::intValue)
             .findAny();
     }

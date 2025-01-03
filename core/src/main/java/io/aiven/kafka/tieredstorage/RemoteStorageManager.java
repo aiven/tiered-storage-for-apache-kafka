@@ -143,8 +143,7 @@ public class RemoteStorageManager implements org.apache.kafka.server.log.remote.
     public void configure(final Map<String, ?> configs) {
         Objects.requireNonNull(configs, "configs must not be null");
         final RemoteStorageManagerConfig config = new RemoteStorageManagerConfig(configs);
-        final MetricConfig metricConfig = new MetricConfig()
-            .samples(config.getInt(METRICS_NUM_SAMPLES_CONFIG))
+        final MetricConfig metricConfig = new MetricConfig().samples(config.getInt(METRICS_NUM_SAMPLES_CONFIG))
             .timeWindow(config.getLong(METRICS_SAMPLE_WINDOW_MS_CONFIG), TimeUnit.MILLISECONDS)
             .recordLevel(Sensor.RecordingLevel.forName(config.getString(METRICS_RECORDING_LEVEL_CONFIG)));
         metrics = new Metrics(time, metricConfig);
@@ -153,9 +152,8 @@ public class RemoteStorageManager implements org.apache.kafka.server.log.remote.
         encryptionEnabled = config.encryptionEnabled();
         if (encryptionEnabled) {
             final Map<String, KeyPair> keyRing = new HashMap<>();
-            config.encryptionKeyRing().forEach((keyId, keyPaths) ->
-                keyRing.put(keyId, RsaKeyReader.read(keyPaths.publicKey, keyPaths.privateKey))
-            );
+            config.encryptionKeyRing().forEach(
+                (keyId, keyPaths) -> keyRing.put(keyId, RsaKeyReader.read(keyPaths.publicKey, keyPaths.privateKey)));
             rsaEncryptionProvider = new RsaEncryptionProvider(config.encryptionKeyPairId(), keyRing);
             aesEncryptionProvider = new AesEncryptionProvider();
         }
@@ -176,9 +174,11 @@ public class RemoteStorageManager implements org.apache.kafka.server.log.remote.
 
         customMetadataSerde = new SegmentCustomMetadataSerde();
         customMetadataFields = config.customMetadataKeysIncluded();
-
-        config.uploadRateLimit().ifPresent(value ->
-            rateLimitingBucket = RateLimitedInputStream.rateLimitBucket(value));
+        config.globalRateLimit().ifPresent(value -> rateLimitingBucket = RateLimitedInputStream.rateLimitBucket(value));
+        if (rateLimitingBucket == null) {
+            config.uploadRateLimit()
+                .ifPresent(value -> rateLimitingBucket = RateLimitedInputStream.rateLimitBucket(value));
+        }
     }
 
     // for testing
@@ -556,7 +556,7 @@ public class RemoteStorageManager implements org.apache.kafka.server.log.remote.
 
             final var suffix = ObjectKeyFactory.Suffix.LOG;
             final var segmentKey = objectKey(remoteLogSegmentMetadata, suffix);
-            return new FetchChunkEnumeration(chunkManager, segmentKey, segmentManifest, range)
+            return new FetchChunkEnumeration(chunkManager, segmentKey, segmentManifest, range, rateLimitingBucket)
                 .toInputStream();
         } catch (final KeyNotFoundException | KeyNotFoundRuntimeException e) {
             throw new RemoteResourceNotFoundException(e);
